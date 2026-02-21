@@ -10,10 +10,6 @@ TEST_MASK="test_*.sh"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Скрипт-раннер для запуска отдельного теста
 RUNNER="${SCRIPT_DIR}/scripts/runner.sh"
-# Уникальный файл для обмена данными
-DATA_FILE=$(mktemp)
-
-
 
 # Вывести справку / помощь. Без аргументов
 function PrintHelp() {
@@ -35,7 +31,7 @@ function DoTests() {
     # Перешли в папку с тестами
     find . -type f -name "${TEST_MASK}" | while IFS= read -r line; do
       # Запускаем все скрипты по-очереди, в отдельном процессе
-      ${RUNNER} ${line} ${DATA_FILE}
+      ${RUNNER} ${line}
       RES=$?
     done
     popd > /dev/null
@@ -57,7 +53,13 @@ if [[ "$#" -eq 0 ]]; then
 fi
 
 # При наличии аргументов делаем разбор и выполняем тесты
+
+# Уникальный файл для обмена данными
+export BTEST_DATA_FILE=$(mktemp)
+
 while [[ "$#" -gt 0 ]]; do
   DoTests "$1"
   shift
 done
+
+rm -f ${BTEST_DATA_FILE}
