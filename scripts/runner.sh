@@ -20,6 +20,8 @@ fi
 # Подключаем сам тестовый скрипт
 source $1
 
+echo "NAME=${BTEST_TEST_NAME}" > ${BTEST_DATA_FILE}
+
 echo "[ RUN      ] ${BTEST_TEST_NAME}"
 
 if [[ $(type -t setup) == "function" ]]; then

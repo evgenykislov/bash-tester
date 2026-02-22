@@ -11,6 +11,11 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Скрипт-раннер для запуска отдельного теста
 RUNNER="${SCRIPT_DIR}/scripts/runner.sh"
 
+PASSED_COUNT=0
+FAILED_COUNT=0
+FAILED_NAMES=()
+
+
 # Вывести справку / помощь. Без аргументов
 function PrintHelp() {
   echo "bash-tester is test framework, based on bash scripts. Evgeny Kislov, 2026"
@@ -29,11 +34,20 @@ function DoTests() {
   if [[ -d "$1" ]]; then
     pushd "$1" > /dev/null
     # Перешли в папку с тестами
-    find . -type f -name "${TEST_MASK}" | while IFS= read -r line; do
+	FIND_RESULT=$(find . -type f -name "${TEST_MASK}")
+	
+    while IFS= read -r line; do
       # Запускаем все скрипты по-очереди, в отдельном процессе
       ${RUNNER} ${line}
-      RES=$?
-    done
+      TEST_RESULT=$?
+	  TEST_NAME=$(grep "^NAME=" "${BTEST_DATA_FILE}" | cut -d '=' -f2-)
+	  if [[ ${TEST_RESULT} == 0 ]]; then
+	    ((PASSED_COUNT++))
+	  else 
+	    ((FAILED_COUNT++))
+		FAILED_NAMES+=("${TEST_NAME}")
+	  fi
+    done <<< "${FIND_RESULT}"
     popd > /dev/null
   else
     echo "Directory '$1' doesn't exist ... skip it"
@@ -57,9 +71,36 @@ fi
 # Уникальный файл для обмена данными
 export BTEST_DATA_FILE=$(mktemp)
 
+START_TIME=$(date +%s%3N)
+
 while [[ "$#" -gt 0 ]]; do
   DoTests "$1"
   shift
 done
 
+FINISH_TIME=$(date +%s%3N)
+TESTS_DURATION=$((FINISH_TIME - START_TIME))
+
 rm -f ${BTEST_DATA_FILE}
+
+# Выведем статистику
+TESTS_AMOUNT=$((${PASSED_COUNT} + ${FAILED_COUNT}))
+if [[ ${TESTS_AMOUNT} != 0 ]]; then
+  echo "[==========] ${TESTS_AMOUNT} tests. (${TESTS_DURATION} ms total)"
+fi
+if [[ ${PASSED_COUNT} != 0 ]]; then
+  echo "[  PASSED  ] ${PASSED_COUNT} tests."
+fi
+if [[ ${FAILED_COUNT} != 0 ]]; then
+  echo "[  FAILED  ] ${FAILED_COUNT} tests, listed below:"
+  for element in "${FAILED_NAMES[@]}"; do
+    printf "[  FAILED  ] %s\\n" "$element"
+  done
+fi
+
+# Выдадим обобщённый результат всех тестов
+if [[ ${FAILED_COUNT} == 0 ]]; then
+  exit 0
+else
+  exit 1
+fi
