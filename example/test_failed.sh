@@ -2,7 +2,7 @@
 
 # Failed test
 
-BTEST_TEST_NAME="Failed test"
+BTEST_TEST_NAME="Test with errors"
 
 test() {
   return 1
