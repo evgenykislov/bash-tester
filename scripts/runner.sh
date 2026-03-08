@@ -35,9 +35,6 @@ fi
 if [[ ${BTEST_TEST_RES} == 0 ]]; then
   test
   BTEST_TEST_RES=$?
-  if [[ ${BTEST_TEST_RES} != 0 ]]; then
-    echo "  Test failed"
-  fi
 fi
 
 if [[ $(type -t teardown) == "function" ]]; then
