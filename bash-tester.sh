@@ -44,6 +44,9 @@ function DoTests() {
       ${RUNNER} ${line}
       TEST_RESULT=$?
 	  TEST_NAME=$(grep "^NAME=" "${BTEST_DATA_FILE}" | cut -d '=' -f2-)
+	  if [[ -z "${TEST_NAME}" ]]; then
+	    TEST_NAME=${line}
+	  fi
 	  if [[ ${TEST_RESULT} == 0 ]]; then
 	    ((PASSED_COUNT++))
 	  else 
