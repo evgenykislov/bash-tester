@@ -37,6 +37,9 @@ function DoTests() {
 	FIND_RESULT=$(find . -type f -name "${TEST_MASK}")
 	
     while IFS= read -r line; do
+	  if [[ -z "${line}" ]]; then
+	    continue
+	  fi
       # Запускаем все скрипты по-очереди, в отдельном процессе
       ${RUNNER} ${line}
       TEST_RESULT=$?
@@ -85,9 +88,7 @@ rm -f ${BTEST_DATA_FILE}
 
 # Выведем статистику
 TESTS_AMOUNT=$((${PASSED_COUNT} + ${FAILED_COUNT}))
-if [[ ${TESTS_AMOUNT} != 0 ]]; then
-  echo "[==========] ${TESTS_AMOUNT} tests. (${TESTS_DURATION} ms total)"
-fi
+echo "[==========] ${TESTS_AMOUNT} tests. (${TESTS_DURATION} ms total)"
 if [[ ${PASSED_COUNT} != 0 ]]; then
   echo "[  PASSED  ] ${PASSED_COUNT} tests."
 fi
