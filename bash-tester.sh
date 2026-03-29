@@ -13,15 +13,20 @@ RUNNER="${SCRIPT_DIR}/scripts/runner.sh"
 
 PASSED_COUNT=0
 FAILED_COUNT=0
+SKIPPED_COUNT=0
 FAILED_NAMES=()
+
+FILTER_MASK=""
 
 
 # Вывести справку / помощь. Без аргументов
 function PrintHelp() {
   echo "bash-tester is test framework, based on bash scripts. Evgeny Kislov, 2026"
   echo "Usage:"
-  echo "  bash-tester.sh test-folder"
-  echo "    test-folder - directory with test scripts"
+  echo "  bash-tester.sh [options] test-folder | [test-folder]"
+  echo "    options:"
+  echo "      --filter=mask - use filter for running tests. Mask specifies filter rule"
+  echo "    test-folder - directory with test scripts. Multiple directories can be specified. Directories are specified at the end of commandline"
   echo "Test scripts should be in test-folder or subfolders. Test script should has name like test_*.sh"
   echo ""
 }
@@ -40,6 +45,13 @@ function DoTests() {
 	  if [[ -z "${line}" ]]; then
 	    continue
 	  fi
+	  
+	  # Фильтруем тесты
+	  if [[ ${FILTER_MASK} != "" ]] && [[ ${line} != ${FILTER_MASK} ]]; then
+	    ((SKIPPED_COUNT++))
+		continue
+	  fi
+	  
       # Запускаем все скрипты по-очереди, в отдельном процессе
       ${RUNNER} ${line}
       TEST_RESULT=$?
@@ -61,8 +73,6 @@ function DoTests() {
 }
 
 
-
-
 # ---------------------
 # main
 # ---------------------
@@ -72,7 +82,17 @@ if [[ "$#" -eq 0 ]]; then
   exit 0
 fi
 
-# При наличии аргументов делаем разбор и выполняем тесты
+# Делаем разбор параметров
+while [[ "$#" -gt 0 ]]; do
+  if [[ "$1" == "--filter="* ]]; then
+    FILTER_MASK=${1#--filter=}
+	shift
+	continue
+  fi
+  
+  # Не один из параметров не опознался - значит дальше только директории с тестами
+  break
+done
 
 # Уникальный файл для обмена данными
 export BTEST_DATA_FILE=$(mktemp)
@@ -90,8 +110,11 @@ TESTS_DURATION=$((FINISH_TIME - START_TIME))
 rm -f ${BTEST_DATA_FILE}
 
 # Выведем статистику
-TESTS_AMOUNT=$((${PASSED_COUNT} + ${FAILED_COUNT}))
+TESTS_AMOUNT=$((${SKIPPED_COUNT} + ${PASSED_COUNT} + ${FAILED_COUNT}))
 echo "[==========] ${TESTS_AMOUNT} tests. (${TESTS_DURATION} ms total)"
+if [[ ${SKIPPED_COUNT} != 0 ]]; then
+  echo "[  SKIPPED ] ${SKIPPED_COUNT} tests."
+fi
 if [[ ${PASSED_COUNT} != 0 ]]; then
   echo "[  PASSED  ] ${PASSED_COUNT} tests."
 fi
